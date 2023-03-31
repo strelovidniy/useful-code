@@ -92,7 +92,7 @@ public class {controllerName} : ControllerBase
                 or "ulong?"
                 or "ushort?"
                 or "sbyte?"
-                or "CancelationToken");
+                or "CancellationToken");
 
         var controllerParameters = "\n        "
             + string.Join(",\n        ",
