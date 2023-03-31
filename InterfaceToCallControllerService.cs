@@ -157,7 +157,7 @@ internal class {serviceName} : I{serviceName}
                         .Split(' ').Select(s => s.Trim())
                         .Select(s => s[0].ToString().ToUpper() + s[1..]))))
             + ')'
-            + " body = ("
+            + " httpRequestBody = ("
             + string.Join(", ",
                 controllerParameters.Split('\n').Where(p => p.Contains("[FromBody]"))
                     .Select(p => p.Replace("[FromBody] ", string.Empty).Trim().Split(' ')[1]))
@@ -167,10 +167,21 @@ internal class {serviceName} : I{serviceName}
         if (controllerParameters.Split("[FromBody]").Length == 2)
         {
             postParameter
-                = $"var body = {controllerParameters.Split('\n').Where(p => p.Contains("[FromBody]")).Select(p => p.Replace("[FromBody] ", string.Empty).Trim().Split(' ')[1]).First()}";
+                = $"var httpRequestBody = {controllerParameters.Split('\n').Where(p => p.Contains("[FromBody]")).Select(p => p.Replace("[FromBody] ", string.Empty).Trim().Split(' ')[1]).First()}";
         }
 
-        postParameter = postParameter?.Replace(",,", ",");
+        postParameter = postParameter?.Replace(",,", ",")?.Replace(",)", ")");
+
+        var queryParameters = controllerParameters.Contains("[FromQuery]")
+            ? string.Join("&", controllerParameters.Split('\n').Where(p => p.Contains("[FromQuery]"))
+                .Select(p => p.Replace("[FromQuery] ", string.Empty).Trim().Split(' ')[1])
+                .Select(p => $"{p}={{{p}}}"))
+            : null;
+
+        if (queryParameters is not null)
+        {
+            queryParameters = $"\"?{queryParameters}\"".Replace(",}", "}").Replace(",=", "=");
+        }
 
         // Generate the Controller action method code
         serviceCode += $@"
@@ -178,7 +189,7 @@ internal class {serviceName} : I{serviceName}
     {{
         {(postParameter is not null ? (postParameter.Last() == ',' ? postParameter.Remove(postParameter.Length - 1) : postParameter) + ";\n\n        " : string.Empty)}var response = await _httpClient
             .{httpMethod.Replace("Http", string.Empty)}Async(
-                {(firstPartOfRoute + '/' + secondPartOfRoute).Replace("-async", string.Empty).Replace("\"/\"", "/")}{(postParameter is not null ? ",\n                new StringContent(\n                    JsonConvert.SerializeObject(\n                        body\n                    )\n                )" : httpMethod is "HttpPost" or "HttpPut" ? ",\n                null" : string.Empty)},
+                {(queryParameters is not null ? "$" : string.Empty)}{(firstPartOfRoute + '/' + secondPartOfRoute + (queryParameters ?? string.Empty)).Replace("-async", string.Empty).Replace("\"/\"", "/").Replace("\"\"", string.Empty)}{(postParameter is not null ? ",\n                new StringContent(\n                    JsonConvert.SerializeObject(\n                        httpRequestBody\n                    )\n                )" : httpMethod is "HttpPost" or "HttpPut" ? ",\n                null" : string.Empty)},
                 cancellationToken
             );
 
