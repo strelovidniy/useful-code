@@ -178,7 +178,8 @@ internal class {serviceName} : I{serviceName}
     {{
         {(postParameter is not null ? (postParameter.Last() == ',' ? postParameter.Remove(postParameter.Length - 1) : postParameter) + ";\n\n        " : string.Empty)}var response = await _httpClient
             .{httpMethod.Replace("Http", string.Empty)}Async(
-                {(firstPartOfRoute + '/' + secondPartOfRoute).Replace("-async", string.Empty).Replace("\"/\"", "/")}{(postParameter is not null ? ",\n                new StringContent(\n                    JsonConvert.SerializeObject(\n                        body\n                    )\n                )" : string.Empty)}
+                {(firstPartOfRoute + '/' + secondPartOfRoute).Replace("-async", string.Empty).Replace("\"/\"", "/")}{(postParameter is not null ? ",\n                new StringContent(\n                    JsonConvert.SerializeObject(\n                        body\n                    )\n                )" : httpMethod is "HttpPost" or "HttpPut" ? ",\n                null" : string.Empty)},
+                cancellationToken
             );
 
         response.EnsureSuccessStatusCode();{(returnType is not "Task" && returnType is not "void" ? @$"
