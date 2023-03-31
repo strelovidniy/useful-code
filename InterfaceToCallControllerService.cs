@@ -93,7 +93,7 @@ internal class {serviceName} : I{serviceName}
                 or "ulong?"
                 or "ushort?"
                 or "sbyte?"
-                or "CancelationToken");
+                or "CancellationToken");
 
         var controllerParameters = "\n        "
             + string.Join(",\n        ",
